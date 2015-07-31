@@ -4,3 +4,11 @@
 
 - name: remove miniconda setup script
   file: name=/tmp/miniconda.sh state=absent
+
+- name: remove conda package tarballs
+  command: "{{ miniconda_home }}/bin/conda clean -t"
+  when: miniconda_clean
+
+- name: remove unused conda packages
+  command: "{{ miniconda_home }}/bin/conda clean -p"
+  when: miniconda_clean
