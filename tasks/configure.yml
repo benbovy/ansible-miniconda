@@ -2,14 +2,12 @@
 # necessary steps to configure the role
 
 - name: install base condarc
-  sudo: no
   copy: src={{ item }} dest="~/.{{ item }}"
   with_items:
     - condarc
   when: miniconda_add_condarc
 
 - name: add miniconda to the PATH
-  sudo: no
   lineinfile:
     dest: "{{ miniconda_rcfile }}"
     line: export PATH={{ miniconda_home }}/bin:$PATH
@@ -17,48 +15,41 @@
   when: miniconda_modify_path
 
 - name: update conda to latest version
-  sudo: no
-  shell: "{{ miniconda_home }}/bin/conda update conda --yes -q \
-          executable=/bin/bash"
+  command: "{{ miniconda_home }}/bin/conda update conda --yes -q"
   when: miniconda_conda_latest
 
 - name: create environments
-  sudo: no
-  shell: "{{ miniconda_home }}/bin/conda create --yes -q \
-          -n {{ item.name }} python={{ item.python_version }} {{ item.pkgs }} \
-          creates={{ miniconda_home }}/envs/{{ item.name }}"
+  command: "{{ miniconda_home }}/bin/conda create --yes -q \
+            -n {{ item.name }} python={{ item.python_version }} {{ item.pkgs }} \
+            creates={{ miniconda_home }}/envs/{{ item.name }}"
   when: miniconda_installed|success and miniconda_environments is not none
   with_items: miniconda_environments
   notify:
     - remove conda package tarballs
 
 - name: install conda-env
-  sudo: no
-  shell: "{{ miniconda_home }}/bin/conda install conda-env --yes -q \
-          creates={{ miniconda_home }}/bin/conda-env executable=/bin/bash"
+  command: "{{ miniconda_home }}/bin/conda install conda-env --yes -q \
+            creates={{ miniconda_home }}/bin/conda-env"
   register: conda_env_installed
   when: miniconda_environments_files is not none
 
 - name: copy environment definition files
-  sudo: no
   copy: src="{{ item.local }}" dest="{{ item.remote }}"
   with_items: miniconda_environment_files
   when: item.local is defined
 
 - name: create environments based on environment files
-  sudo: no
-  shell: "{{ miniconda_home }}/bin/conda env create -q \
-          --file {{ item.remote }} -n {{ item.name }} \
-          creates={{ miniconda_home }}/envs/{{ item.name }}"
+  command: "{{ miniconda_home }}/bin/conda env create -q \
+            --file {{ item.remote }} -n {{ item.name }} \
+            creates={{ miniconda_home }}/envs/{{ item.name }}"
   with_items: miniconda_environment_files
   when: conda_env_installed|success
   notify:
     - remove conda package tarballs
 
 - name: update environments
-  sudo: no
-  shell: "{{ miniconda_home }}/bin/conda update --yes -q \
-          -n {{ item.name }} {{ item.pkgs }}"
+  command: "{{ miniconda_home }}/bin/conda update --yes -q \
+            -n {{ item.name }} {{ item.pkgs }}"
   with_items: miniconda_environments
   when: miniconda_update
   notify:
@@ -66,12 +57,11 @@
     - remove unused conda packages
 
 - name: update environments based on environment files
-  sudo: no
   # doesn't work yet (conda env issue) -> use create with --force
   # shell: "{{ miniconda_home }}/bin/conda env update \
   #         --file {{ item.remote }} -n {{ item.name }}"
-  shell: "{{ miniconda_home }}/bin/conda env create -q --force \
-          --file {{ item.remote }} -n {{ item.name }}"
+  command: "{{ miniconda_home }}/bin/conda env create -q --force \
+            --file {{ item.remote }} -n {{ item.name }}"
   with_items: miniconda_environment_files
   when: miniconda_update
   notify:
